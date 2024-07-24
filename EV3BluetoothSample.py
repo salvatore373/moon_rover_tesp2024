@@ -1,3 +1,6 @@
+#Initial code copied from
+# https://pybricks.com/projects/tutorials/wireless/hub-to-device/pc-communication/
+
 from pybricks.pupdevices import Motor
 from pybricks.parameters import Port
 from pybricks.tools import wait

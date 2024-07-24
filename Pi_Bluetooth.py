@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020 Henrik Blidh
 # Copyright (c) 2022-2023 The Pybricks Authors
+# Code from https://pybricks.com/projects/tutorials/wireless/hub-to-device/pc-communication/
 
 """
 Example program for computer-to-hub communication.
