@@ -3,8 +3,9 @@ import numpy as np
 from path_planning.path_planner import PathPlanner, CellType
 from path_planning.vehicle import Vehicle
 
-if __name__ == '__main__':
-    rover = Vehicle(0.3, 0.3)
+
+def test_path_planning():
+    rover = Vehicle(0.3, 0.3, 0.3)
     path_planner = PathPlanner(rover)
 
     # grid sizes (in meters)
@@ -21,3 +22,7 @@ if __name__ == '__main__':
     goal = (6, 17)
 
     path_planner.compute_best_path(grid, start, goal)
+
+
+if __name__ == '__main__':
+    test_path_planning()
