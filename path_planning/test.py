@@ -21,7 +21,7 @@ def test_path_planning():
     start = (0, 0)
     goal = (6, 17)
 
-    path_planner.compute_best_path(grid, start, goal)
+    return path_planner.compute_best_path(grid, start, goal)
 
 
 if __name__ == '__main__':
