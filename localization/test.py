@@ -3,7 +3,6 @@ from PIL import Image
 
 from localization.localizer import Localizer
 
-
 def test_localizer():
     localizer = Localizer()
 
