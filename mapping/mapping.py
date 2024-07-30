@@ -4,6 +4,7 @@ from transformers import CLIPSegProcessor, CLIPSegForImageSegmentation
 from PIL import Image
 
 import torch
+from scipy.spatial import distance
 
 from path_planning.path_planner import OBSTACLE_COST
 
@@ -17,24 +18,25 @@ class Mapping:
     def __init__(self):
         self.processor = CLIPSegProcessor.from_pretrained("CIDAS/clipseg-rd64-refined")
         self.model = CLIPSegForImageSegmentation.from_pretrained("CIDAS/clipseg-rd64-refined")
-        # self.prompts = ["stone", "sand", "rover"]  # TODO: check whether they are all needed
-        self.prompts = ["stone", "sand or rover"]  # TODO: check whether they are all needed
 
-    def get_obstacles_position(self, map_img):
+        self.map_homography = None
+
+    def get_objects_position(self, map_img, prompts: list[str]):
         """
-        Given the image of the map, returns the position (coordinates in the image) of the rocks in the given image.
+        Given the image of the map, returns the position (coordinates in the image) of the objects
+         in the given image.
         :param map_img: The image of the map where to recognize rocks.
-        :return: The
+        :param prompts: The labels of the objects to find in the given image.
+        :return: A JSON containing the objects labels as keys and as value a matrix where each pixel corresponds to
+         the probability that the object is in that pixel.
         """
-        inputs = self.processor(text=self.prompts, images=[map_img] * len(self.prompts), padding="max_length",
+        inputs = self.processor(text=prompts, images=[map_img] * len(prompts), padding="max_length",
                                 return_tensors="pt")
-
         with torch.no_grad():
             outputs = self.model(**inputs)
-
         preds = outputs.logits.unsqueeze(1)
 
-        return {label: preds[i][0] for i, label in enumerate(self.prompts)}
+        return {label: preds[i][0] for i, label in enumerate(prompts)}
 
     def convert_obstacles_prob_to_gridmap(self, obstacles_prob):
         """
@@ -104,19 +106,19 @@ class Mapping:
         # Extract the corner points
         corner_points = approx.reshape(-1, 2)
 
-        # Display the original image and the detected corners
-        import matplotlib.pyplot as plt
-        image = cv2.cvtColor(greyscale_sand_rectangle, cv2.COLOR_GRAY2BGR)
-        for point in corner_points:
-            cv2.circle(image, tuple(point), 5, (0, 0, 255), -1)
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image)
-        plt.title("Detected Corners")
-        plt.show()
+        # Display the original image and the detected corners DEBUG
+        # import matplotlib.pyplot as plt
+        # image = cv2.cvtColor(greyscale_sand_rectangle, cv2.COLOR_GRAY2BGR)
+        # for point in corner_points:
+        #     cv2.circle(image, tuple(point), 5, (0, 0, 255), -1)
+        # plt.figure(figsize=(10, 10))
+        # plt.imshow(image)
+        # plt.title("Detected Corners")
+        # plt.show()
 
         return corner_points
 
-    def find_homography_matrix(self, sand_prob):
+    def _find_homography_matrix(self, sand_prob):
         """
         Given the probability that each pixel contains sand, it returns the homography matrix to turn the picture of
          the rectangular map into a real rectangle.
@@ -130,19 +132,81 @@ class Mapping:
         image_h, image_w = sand_prob.shape
         desired_corners = [(0, 0), (0, image_w), (image_h, 0), (image_h, image_w)]
 
-    def get_map_from_image(self):
-        # perform perspective warping
-        # warped_img = ... TODO
-        warped_img = Image.open("/Volumes/SALVATORE R/Università/TESP/data/map0.jpeg")  # DEBUG
+        # Associate each of the sandbox corners to the closest desired point
+        sorted_desired_corners = np.empty(
+            (4, 2))  # ith elem in sorted_desired_corners corresponds to ith in sandbox_corners
+        for j, s_corner in enumerate(sandbox_corners):
+            min_dist = image_w + image_h
+            best_assoc = (-1, -1)
+            best_index = -1
+            for i, d_corner in enumerate(desired_corners):
+                min_dist_temp = min(distance.euclidean(s_corner, d_corner), min_dist)
+                if min_dist_temp != min_dist:
+                    min_dist = min_dist_temp
+                    best_assoc = d_corner
+                    best_index = i
 
-        # find the position of obstacles, rover and sandbox
-        obstacles_position_probability = self.get_obstacles_position(warped_img)
+            # Associate this desired point to the closest sandbox corner
+            sorted_desired_corners[j, :] = best_assoc
+            # Prevent from associating this desired point to another sandbox corner
+            del desired_corners[best_index]
+        del desired_corners
 
-        self.find_homography_matrix(obstacles_position_probability['sand or rover'])
+        # Find the homography transformation from the source points to the destination ones
+        hom_mat, _ = cv2.findHomography(sandbox_corners, sorted_desired_corners, cv2.RANSAC, 5.0)
+        return hom_mat
 
+    def get_map_homography(self, map_img):
+        """
+        Returns the homography matrix to transform the given image to a bird-eye view.
+        :param map_img: The image of the map where the transformation should be applied.
+        :return: The homography matrix for the transformation.
+        """
+        if self.map_homography is None:
+            sand_position = self.get_objects_position(map_img, ['sand or rover'])
+            map_homography = self._find_homography_matrix(sand_position['sand or rover'])
+
+            # # Apply the homography transformation DEBUG
+            # import matplotlib.pyplot as plt
+            # image = cv2.imread("/Volumes/SALVATORE R/Università/TESP/data/map0.jpeg")
+            # image = cv2.resize(image, (352, 352))
+            # # Apply the homography transformation
+            # rectified_image = cv2.warpPerspective(np.array(image), homography, image.shape[:2])
+            # # Display the original and rectified images
+            # plt.figure(figsize=(10, 5))
+            # plt.subplot(1, 2, 1)
+            # plt.title("Original Image")
+            # plt.imshow(cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB))
+            # plt.subplot(1, 2, 2)
+            # plt.title("Rectified Image")
+            # plt.imshow(cv2.cvtColor(rectified_image, cv2.COLOR_BGR2RGB))
+            # plt.show()
+
+            self.map_homography = map_homography
+
+        return self.map_homography
+
+    def apply_homography_to_map(self, image):
+        """
+        Given an image of the mao, applies the needed transformations to turn it into a bird-eye view.
+        :param image: The image to transform.
+        :return: The transformed image.
+        """
+        assert self.map_homography is not None, "You first have to call get_map_homography()."
+
+        image = cv2.resize(image, (352, 352))
+        # return cv2.warpPerspective(np.array(image), self.map_homography, image.shape[:2])
+        return cv2.warpPerspective(image, self.map_homography, image.shape[:2])
+
+    def get_gridmap(self, map_image):
+        """
+        Given an image, returns a grid where the cells can have 2 possible values: one for the cells containing
+         obstacles and the other for free cells.
+        Regardless of the size of map_image, the returned gridmap will have dimension (352, 352).
+        :param map_image: The image of the map.
+        :return: The gridmap. Dimension (352, 352).
+        """
+        # Find the position of the obstacles in the map
+        obstacles_position_probability = self.get_objects_position(map_image, ['stone'])
         # Generate a map from the found obstacles
-        self.convert_obstacles_prob_to_gridmap(obstacles_position_probability['stone'])
-
-        # turn warped image into grid containing obstacles (using the whole warped img as map)
-        # return ...(obstacles_position_probability, warped_img.size) TODO
-        pass
+        return self.convert_obstacles_prob_to_gridmap(obstacles_position_probability['stone'])

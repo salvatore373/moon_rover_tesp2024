@@ -36,7 +36,7 @@ class PathPlanner:
         """
         super().__init__()
         self.vehicle = vehicle
-        self.grid_resolution = grid_resolution
+        self.grid_resolution = grid_resolution  # TODO sandbox = 1m x 2.05m
 
     def _meters_to_cells(self, meters: float) -> int:
         """
