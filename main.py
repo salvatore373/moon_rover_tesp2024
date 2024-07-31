@@ -1,3 +1,22 @@
-from path_planning.test import test_path_planning
+import cv2
 
-test_path_planning()
+
+def take_picture_with_camera():
+    """Returns the picture taken with the connected camera."""
+    cam = cv2.VideoCapture(0)
+    _, frame = cam.read()
+    return frame
+
+
+def init():
+    pass
+
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    main()
+
+    print()
