@@ -7,21 +7,13 @@ import numpy as np
 import scipy
 from numpy import floating
 
+from gridmap import CellType
 from path_planning.vehicle import Vehicle
 
 # The cost that a cell containing an obstacle should have
 OBSTACLE_COST = 100
 # The cost that a free cell should have
 FREE_COST = 0
-
-
-class CellType(Enum):
-    """
-    Enumeration of types of cells that can be in the grid passed to the path planner.
-    """
-    FREE = 0
-    OBSTACLE = 1
-
 
 class PathPlanner:
     """
@@ -36,21 +28,7 @@ class PathPlanner:
         """
         super().__init__()
         self.vehicle = vehicle
-        self.grid_resolution = grid_resolution  # TODO sandbox = 1m x 2.05m
-
-    def _meters_to_cells(self, meters: float) -> int:
-        """
-        Convert the given number of meters into the corresponding number of cells.
-        num_cells = num_meters / resolution
-        """
-        return round(meters / self.grid_resolution)
-
-    def _cells_to_meters(self, cells: float) -> float:
-        """
-        Convert the given number of cells into the corresponding number of meters.
-        num_cells = num_meters / resolution
-        """
-        return cells * self.grid_resolution
+        self.grid_resolution = grid_resolution
 
     def _add_grid_cost(self, grid: np.array):
         """
@@ -72,29 +50,6 @@ class PathPlanner:
         # Expand the cost of the obstacles in the neighboring cells, in order to keep the path
         # distant from the obstacles.
         return scipy.ndimage.gaussian_filter(cost_grid, sigma=sigma)
-
-    def _inflate_obstacles(self, grid) -> np.array:
-        """
-        Increase the size of the obstacles by the dimension of the vehicle's width, to be sure
-         that the vehicle always fits in the space between 2 obstacles.
-        :param grid: The grid in which to find the path.
-        :return: Returns the inflated grid.
-        """
-        # Initialize the inflated grid
-        inflated_grid = np.copy(grid)
-
-        # Get the number of safe-cells to add around each obstacle
-        safe_cells_num = self._meters_to_cells(self.vehicle.width)
-
-        w, h = grid.shape
-        for i in range(w):
-            for j in range(h):
-                # If the current cell in the original grid is an obstacle, add some obstacles around it
-                if grid[i, j] == CellType.OBSTACLE:
-                    inflated_grid[max(0, i - safe_cells_num): min(w, i + safe_cells_num + 1),
-                    max(0, j - safe_cells_num): min(h, j + safe_cells_num + 1)] = CellType.OBSTACLE
-
-        return inflated_grid
 
     @staticmethod
     def _compute_heuristics(node_a, node_b) -> floating:
@@ -156,7 +111,7 @@ class PathPlanner:
         """
 
         # Inflate obstacles
-        inflated_grid = self._inflate_obstacles(grid)
+        inflated_grid = self._inflate_obstacles(grid) # TODO
 
         # Compute grid's cost
         grid_cost = self._add_grid_cost(inflated_grid)

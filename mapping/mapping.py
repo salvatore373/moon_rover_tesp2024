@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
+import scipy
 from transformers import CLIPSegProcessor, CLIPSegForImageSegmentation
 from PIL import Image
 
 import torch
 from scipy.spatial import distance
 
+from gridmap import CellType
 from path_planning.path_planner import OBSTACLE_COST
 
 #  If the probability of a certain pixel to contain an obstacle is above this threshold, then it contains an obstacle
@@ -21,7 +23,7 @@ class Mapping:
 
         self.map_homography = None
 
-    def get_objects_position(self, map_img, prompts: list[str]):
+    def get_objects_position(self, map_img: np.ndarray, prompts: list[str]):
         """
         Given the image of the map, returns the position (coordinates in the image) of the objects
          in the given image.
@@ -36,7 +38,10 @@ class Mapping:
             outputs = self.model(**inputs)
         preds = outputs.logits.unsqueeze(1)
 
-        return {label: preds[i][0] for i, label in enumerate(prompts)}
+        # Put all the predictions in a JSON and resize them back to the original shape
+        return {
+            label: cv2.resize(preds[i][0].numpy(), (map_img.shape[1], map_img.shape[0]), interpolation=cv2.INTER_LINEAR)
+            for i, label in enumerate(prompts)}
 
     def convert_obstacles_prob_to_gridmap(self, obstacles_prob):
         """
@@ -45,9 +50,12 @@ class Mapping:
         :param obstacles_prob: A matrix containing the probability that the corresponding pixel contains an obstacle.
         :return: A grid where the cells can be either 100 if they contain an obstacle, or 0 if they don't.
         """
-        obstacles_grid = torch.sigmoid(obstacles_prob).numpy()
-        obstacles_grid[obstacles_grid < OBSTACLES_PROBABILITY_THRESHOLD] = 0
-        obstacles_grid[obstacles_grid != 0] = OBSTACLE_COST
+        # obstacles_grid = scipy.special.expit(obstacles_prob)
+        # obstacles_grid[obstacles_grid < OBSTACLES_PROBABILITY_THRESHOLD] = 0
+        # obstacles_grid[obstacles_grid != 0] = 100
+        obstacles_prob = scipy.special.expit(obstacles_prob)
+        obstacles_grid = np.full(obstacles_prob.shape, CellType.FREE)
+        obstacles_grid[obstacles_prob > OBSTACLES_PROBABILITY_THRESHOLD] = CellType.OBSTACLE
 
         # Show the map as grid DEBUG
         # import matplotlib.pyplot as plt
@@ -73,7 +81,8 @@ class Mapping:
         :param rover_prob: A matrix representing the probability that the corresponding pixel contains the rover.
         :return: The coordinates of one point of the rover in the given matrix
         """
-        rover_prob = torch.sigmoid(rover_prob).numpy()
+        # rover_prob = torch.sigmoid(rover_prob).numpy()
+        rover_prob = scipy.special.expit(rover_prob)
         # Get the coordinates of the 50 pixels with the highest value
         # Flatten the array and get the indices of the top 50 values
         flat_indices = np.argpartition(rover_prob.flatten(), -NUM_VALUABLE_PIXELS_ROVER_DETECTION)[
@@ -91,7 +100,8 @@ class Mapping:
         :return: The position of the corners of the sandbox.
         """
         # Make the image binary
-        sand_prob = torch.sigmoid(sand_prob).numpy()
+        # sand_prob = torch.sigmoid(sand_prob).numpy()
+        sand_prob = scipy.special.expit(sand_prob)
         sand_prob[sand_prob < 0.1] = 0
         sand_prob[sand_prob >= 0.1] = 1
         greyscale_sand_rectangle = (sand_prob * 255.0).astype(np.uint8)
@@ -110,7 +120,7 @@ class Mapping:
         # import matplotlib.pyplot as plt
         # image = cv2.cvtColor(greyscale_sand_rectangle, cv2.COLOR_GRAY2BGR)
         # for point in corner_points:
-        #     cv2.circle(image, tuple(point), 5, (0, 0, 255), -1)
+        #     cv2.circle(image, tuple(point), 50, (0, 0, 255), -1)
         # plt.figure(figsize=(10, 10))
         # plt.imshow(image)
         # plt.title("Detected Corners")
@@ -118,19 +128,22 @@ class Mapping:
 
         return corner_points
 
-    def _find_homography_matrix(self, sand_prob):
+    def _find_homography_matrix(self, sand_prob, desired_width=None, desired_height=None):
         """
         Given the probability that each pixel contains sand, it returns the homography matrix to turn the picture of
          the rectangular map into a real rectangle.
         :param sand_prob: A matrix representing the probability that each pixel contains sand.
+        :param desired_width: The width that the warped map should have.
+        :param desired_height: The height that the warped map should have.
         :return: The homography matrix to turn the picture of the rectangular map into a real rectangle.
         """
         # Find the corners of the sandbox
         sandbox_corners = self._find_sandbox_corners(sand_prob)
 
         # Define the desired corners of the sandbox in the image (TL, TR, BL, BR)
-        image_h, image_w = sand_prob.shape
-        desired_corners = [(0, 0), (0, image_w), (image_h, 0), (image_h, image_w)]
+        image_h, image_w = sand_prob.shape if desired_width is None or desired_height is None else (
+            desired_height, desired_width)
+        desired_corners = [(0, 0), (0, image_h), (image_w, 0), (image_w, image_h)]
 
         # Associate each of the sandbox corners to the closest desired point
         sorted_desired_corners = np.empty(
@@ -147,7 +160,7 @@ class Mapping:
                     best_index = i
 
             # Associate this desired point to the closest sandbox corner
-            sorted_desired_corners[j, :] = best_assoc
+            sorted_desired_corners[j, :] = best_assoc  # DEBUG
             # Prevent from associating this desired point to another sandbox corner
             del desired_corners[best_index]
         del desired_corners
@@ -169,9 +182,9 @@ class Mapping:
             # # Apply the homography transformation DEBUG
             # import matplotlib.pyplot as plt
             # image = cv2.imread("/Volumes/SALVATORE R/Università/TESP/data/map0.jpeg")
-            # image = cv2.resize(image, (352, 352))
+            # # image = cv2.resize(image, (352, 352))
             # # Apply the homography transformation
-            # rectified_image = cv2.warpPerspective(np.array(image), homography, image.shape[:2])
+            # rectified_image = cv2.warpPerspective(np.array(image), map_homography, (1600, 1200))
             # # Display the original and rectified images
             # plt.figure(figsize=(10, 5))
             # plt.subplot(1, 2, 1)
@@ -194,9 +207,8 @@ class Mapping:
         """
         assert self.map_homography is not None, "You first have to call get_map_homography()."
 
-        image = cv2.resize(image, (352, 352))
-        # return cv2.warpPerspective(np.array(image), self.map_homography, image.shape[:2])
-        return cv2.warpPerspective(image, self.map_homography, image.shape[:2])
+        warped = cv2.warpPerspective(image, self.map_homography, (image.shape[1], image.shape[0]))
+        return cv2.resize(warped, (int(image.shape[0] * (1.98 / 1.0)), image.shape[0]))
 
     def get_gridmap(self, map_image):
         """
