@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 
 from color_tag.colorTagDev import tagFinder
+from comms.EV3Comms import EV3Socket
 from mapping.gridmap import GridMap
 from mapping.mapping import Mapping
 from path_planning.path_planner import PathPlanner
@@ -94,6 +95,7 @@ def main():
     print(best_path)
 
     # Initialize the control part
+    ev3socket = EV3Socket("169.254.175.193")
     controller = PDController(Kpx=1, Kdx=0.1, Kpy=1, Kdy=0.1, Kp_theta=1, Kd_theta=0.1, Kv=1, Komega=1, d=0.15)
     curr_x, curr_y = best_path[0]
     des_x, des_y = best_path[1]
@@ -112,6 +114,8 @@ def main():
         print("Front Left motor velocity:", v_FL)
         print("Front Right motor velocity:", v_FR)
         print("Rear motor velocity:", v_R)
+
+        ev3socket.updateMotors(v_FL, v_FR, v_R)
 
     # TODO: stop when an obstacle is too close
 
