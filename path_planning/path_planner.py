@@ -126,5 +126,6 @@ class PathPlanner:
         print("Finished A* computation")
 
         # self._display_path(grid_cost, path)        # DEBUG
+        # return path
+        return np.array(path)
 
-        return path
