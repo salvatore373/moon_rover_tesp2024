@@ -10,6 +10,8 @@ from path_planning.path_planner import PathPlanner
 from path_planning.vehicle import Vehicle
 from rover_code.pid import PDController, calculate_heading
 
+from scipy import ndimage
+
 
 def take_picture_with_camera():
     """Returns the picture taken with the connected camera."""
@@ -89,33 +91,43 @@ def main():
 
     # Build the path planner
     path_planner = PathPlanner(map, rover)
-    start = (111, 20)
-    goal = (280, 135)
-    best_path = path_planner.compute_best_path(start, goal)
+    #start = (184, 97)
+    #goal = (500, 247)
+    startX = int(input("StartX:"))
+    startY = int(input("StartY:"))
+    endX = int(input("EndX:"))
+    endY = int(input("EndY:"))
+    #best_path = path_planner.compute_best_path(start, goal)
+    best_path = path_planner.compute_best_path((startX,startY), (endX,endY))
     print(best_path)
 
     # Initialize the control part
     ev3socket = EV3Socket("169.254.175.193")
+    print("Finished Init")
     controller = PDController(Kpx=1, Kdx=0.1, Kpy=1, Kdy=0.1, Kp_theta=1, Kd_theta=0.1, Kv=1, Komega=1, d=0.15)
+    print("initialized PD")
     curr_x, curr_y = best_path[0]
     des_x, des_y = best_path[1]
     # Initialize the localizer
     localizer = tagFinder()
+    print("init tag finder")
 
-    while curr_x != des_x and des_y != curr_y:
+    while curr_x != des_x or des_y != curr_y:
         img = take_picture_with_camera()
+        print("image taeken")
         img = mapping.apply_homography_to_map(img)
-
+        print('transformed')
         # Compute control commands
         theta = calculate_heading(x1=curr_x, x2=des_x, y1=curr_y, y2=des_y)
-        ((robot_x, robot_y, robot_orient), _, _, _) = localizer.tagAngle(img)
+        print(theta)
+        ((robot_x, robot_y, robot_orient), _, _, _) = localizer.tagAngle(img,(169,42,16),40,(36,99,87),60)
         v_FL, v_FR, v_R = controller.compute_control(x_d=des_x, y_d=des_y, theta_d=theta, x=robot_x,
                                                      y=robot_y, theta=robot_orient, dt=0.1)
-        print("Front Left motor velocity:", v_FL)
-        print("Front Right motor velocity:", v_FR)
-        print("Rear motor velocity:", v_R)
+        print("Front Left motor velocity:", int(np.clip(v_FL,0,255)))
+        print("Front Right motor velocity:", int(np.clip(v_FR,0,255)))
+        print("Rear motor velocity:", int(np.clip(v_R,0,255)))
 
-        ev3socket.updateMotors(v_FL, v_FR, v_R)
+        ev3socket.updateMotors(int(np.clip(v_FL,0,255)), int(np.clip(v_FR,0,255)), int(np.clip(v_R,0,255)))
 
     # TODO: stop when an obstacle is too close
 

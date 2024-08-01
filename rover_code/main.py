@@ -18,7 +18,11 @@ front_left_wheel = Motor(Port.B)
 front_right_wheel = Motor(Port.C)
 #sonic_sensor = UltrasonicSensor(Port.S1)
 
+<<<<<<< Updated upstream
 setIP = "169.254.95.71"
+=======
+setIP = "169.254.175.193"
+>>>>>>> Stashed changes
 setPort = 4000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

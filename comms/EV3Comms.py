@@ -27,8 +27,12 @@ class EV3Socket:
         self.sock.connect((ip,port))
         print("Connected")
 
-    def updateMotors(self, L = 0, R = 0, B = 0):
-        payload = b"L" + str(L).encode('UTF-8') + b"R" + str(R).encode('UTF-8') + b"B" + str(B).encode('UTF-8')
+    def updateMotors(self, leftThrottle = 0, rightThrottle = 0, backThrottle = 0):
+        L = str(leftThrottle).zfill(3)
+        R = str(rightThrottle).zfill(3)
+        B = str(backThrottle).zfill(3)
+
+        payload = b"L" + L.encode('UTF-8') + b"R" + R.encode('UTF-8') + b"B" + B.encode('UTF-8')
         self.sock.send(payload)
         ack = self.sock.recv(4)
         if ack != b"RECV":
