@@ -1,4 +1,6 @@
 import math
+
+
 def calculate_heading(x1, y1, x2, y2):
     # Compute the direction vector
     dx = x2 - x1
@@ -11,8 +13,9 @@ def calculate_heading(x1, y1, x2, y2):
     theta_degrees = math.degrees(theta_radians)
 
     return theta_degrees
-    
-class PDController: 
+
+
+class PDController:
     def __init__(self, Kpx, Kdx, Kpy, Kdy, Kp_theta, Kd_theta, Kv, Komega, d):
         self.Kpx = Kpx
         self.Kdx = Kdx
@@ -27,32 +30,33 @@ class PDController:
         self.prev_ey = 0
         self.prev_e_theta = 0
 
-    def compute_control(self, x_d, y_d, theta_d, x, y, theta, dt): 
+    def compute_control(self, x_d, y_d, theta_d, x, y, theta, dt):
         # Calculate position errors 
         ex = x_d - x
-        ey = y_d - y 
+        ey = y_d - y
         # Calculate heading error 
-        e_theta = theta_d - theta 
+        e_theta = theta_d - theta
         # Derivative of errors 
-        de_x = (ex - self.prev_ex) / dt 
-        de_y = (ey - self.prev_ey) / dt 
-        de_theta = (e_theta - self.prev_e_theta) / dt 
+        de_x = (ex - self.prev_ex) / dt
+        de_y = (ey - self.prev_ey) / dt
+        de_theta = (e_theta - self.prev_e_theta) / dt
         # PD control for position 
-        ux = self.Kpx * ex + self.Kdx * de_x 
+        ux = self.Kpx * ex + self.Kdx * de_x
         uy = self.Kpy * ey + self.Kdy * de_y
         # PD control for heading 
-        u_theta = self.Kp_theta * e_theta + self.Kd_theta * de_theta 
+        u_theta = self.Kp_theta * e_theta + self.Kd_theta * de_theta
         # Convert to wheel velocities 
-        v = self.Kv * (ux + uy) 
-        omega = self.Komega * u_theta 
-        v_FL = v - (self.d / 2) * omega 
-        v_FR = v + (self.d / 2) * omega 
-        v_R = v 
+        v = self.Kv * (ux + uy)
+        omega = self.Komega * u_theta
+        v_FL = v - (self.d / 2) * omega
+        v_FR = v + (self.d / 2) * omega
+        v_R = v
         # Update previous errors 
-        self.prev_ex = ex 
-        self.prev_ey = ey 
-        self.prev_e_theta = e_theta 
-        return v_FL, v_FR, v_R 
+        self.prev_ex = ex
+        self.prev_ey = ey
+        self.prev_e_theta = e_theta
+        return v_FL, v_FR, v_R
+
 
 """    
 # Initialize PDController with suitable gains and parameters  

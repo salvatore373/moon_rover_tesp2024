@@ -136,7 +136,7 @@ if __name__ == "__main__":
         ret, imRaw = vid.read()
         imRaw = cv2.flip(imRaw, 1)
         im = cv2.resize(imRaw, (int(sf*sourceW),int(sf*sourceH)))
-        ((x,y,theta),outimg,rectMap) = tf.tagAngle(im)
+        ((x,y,theta),_,outimg,rectMap) = tf.tagAngle(im)
         print(theta)
         cv2.imshow("images", np.hstack([im, outimg, rectMap]))
         if cv2.waitKey(1) & 0xFF == ord('q'): 
