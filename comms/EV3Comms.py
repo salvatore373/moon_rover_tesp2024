@@ -15,13 +15,12 @@ import socket
 
 class EV3Socket:
     
-    def __init__(self, ip = "169.254.196.106", port = 4000, sock=None):
+    def __init__(self, ip = "169.254.101.15", port = 4000, sock=None):
         self.reconnect(ip, port)
 
     def reconnect(self, ip, port, sock=None):
         if sock is None:
-            self.sock = socket.socket(
-                            socket.AF_INET, socket.SOCK_STREAM)
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
             self.sock = sock
         print("Attempting Connection")
@@ -39,6 +38,7 @@ class EV3Socket:
         payload = b"S00000000000"
         self.sock.send(payload)
         ack = self.sock.recv(4)
+        print(ack)
         if ack != b"RECV":
             print("Invalid ACK")
 
@@ -46,3 +46,28 @@ class EV3Socket:
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         self.sock = None
+
+    def setupServer(self, setIP = "192.168.10.108", setPort = 4000):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ai = socket.getaddrinfo(setIP, setPort)
+        print("Bind address info:", ai)
+        addr = ai[0][-1]
+
+        # A port on which a socket listened remains inactive during some time.
+        # This means that if you run this sample, terminate it, and run again
+        # you will likely get an error. To avoid this timeout, set SO_REUSEADDR
+        # socket option.
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((setIP,setPort))
+        s.listen(1)
+        print("Listening")
+
+if __name__ == "__main__":
+    EV3 = EV3Socket
+    
+    
+    #EV3.updateMotors(100, 400, 800)
+
+    #If receive stop from PC
+        #EV3.stopRobot()
+        #EV3.kill()

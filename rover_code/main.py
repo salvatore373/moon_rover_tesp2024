@@ -18,7 +18,7 @@ front_left_wheel = Motor(Port.B)
 front_right_wheel = Motor(Port.C)
 #sonic_sensor = UltrasonicSensor(Port.S1)
 
-setIP = "169.254.196.106"
+setIP = "169.254.101.15"
 setPort = 4000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,10 +70,9 @@ def robot_stop():
 #         wait(time) 
 
 def main():
-
+    print("waiting to accept")
+    res = s.accept()
     while True:
-        print("waiting to accept")
-        res = s.accept()
         print("accepted")
         client_s = res[0]
         client_addr = res[1]
@@ -84,7 +83,7 @@ def main():
         print("Request:")
         print(req)
         req = req.decode()
-        if (req[1] == "S"):
+        if (req[0] == "S"):
             robot_stop()
         else:
             lth = int(req[1:4])
@@ -94,8 +93,8 @@ def main():
             front_right_wheel.run(rth)
             back_wheel.run(-1 * bth)
         client_s.send(b"RECV")
-        client_s.close()
         print()
+    client_s.close()
 
 
 if __name__ == "__main__":

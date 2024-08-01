@@ -29,12 +29,18 @@ Requires Pybricks firmware >= 3.3.0.
 # print("connected")
 from EV3Comms import EV3Socket
 from time import sleep
-EV3 = EV3Socket()
 
-EV3.updateMotors(100, 400, 800)
-sleep(2)
+ip = "169.254.101.15"
+EV3 = EV3Socket(ip)
+
+EV3.updateMotors("080", "080", "080")
+print("a")
+sleep(5)
+print("b")
+EV3.updateMotors("080", "080", "080")
+sleep(5)
+print("c")
 EV3.stopRobot()
 EV3.kill()
-
 
 exit()
