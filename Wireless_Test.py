@@ -28,23 +28,13 @@ Requires Pybricks firmware >= 3.3.0.
 # sock.connect((HUB_IP,HUB_PORT))
 # print("connected")
 from EV3Comms import EV3Socket
+from time import sleep
 EV3 = EV3Socket()
 
 EV3.updateMotors(100, 400, 800)
+sleep(2)
+EV3.stopRobot()
 EV3.kill()
-# ack = sock.recv(4)
-# print("ACK:")
-# print(ack)
 
-# sock.shutdown(socket.SHUT_RDWR)
-# sock.close()
 
 exit()
-
-
-
-# Run the main async program.
-if __name__ == "__main__":
-    with suppress(asyncio.CancelledError):
-        asyncio.run(main())
-

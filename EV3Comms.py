@@ -31,7 +31,13 @@ class EV3Socket:
     def updateMotors(self, L = 0, R = 0, B = 0):
         payload = b"L" + str(L).encode('UTF-8') + b"R" + str(R).encode('UTF-8') + b"B" + str(B).encode('UTF-8')
         self.sock.send(payload)
+        ack = self.sock.recv(4)
+        if ack != b"RECV":
+            print("Invalid ACK")
 
+    def stopRobot(self):
+        payload = b"S00000000000"
+        self.sock.send(payload)
         ack = self.sock.recv(4)
         if ack != b"RECV":
             print("Invalid ACK")
