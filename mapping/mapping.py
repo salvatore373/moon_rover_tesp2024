@@ -7,7 +7,7 @@ from PIL import Image
 import torch
 from scipy.spatial import distance
 
-from gridmap import CellType
+from mapping.gridmap import CellType
 from path_planning.path_planner import OBSTACLE_COST
 
 #  If the probability of a certain pixel to contain an obstacle is above this threshold, then it contains an obstacle

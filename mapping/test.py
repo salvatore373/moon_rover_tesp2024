@@ -15,21 +15,21 @@ def test_mapping():
     warped_img = mapping.apply_homography_to_map(np.array(map_img_from_camera))
     grid = mapping.get_gridmap(warped_img)
 
-    import matplotlib.pyplot as plt
-    plt.imshow(warped_img)
-    plt.show()
-
-    import matplotlib.pyplot as plt
-    from gridmap import GridMap, CellType
-    test_grid = np.zeros(grid.shape)
-    test_grid[grid == CellType.OBSTACLE] = 100
-    plt.imshow(test_grid)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.imshow(warped_img)
+    # plt.show()
+    #
+    # import matplotlib.pyplot as plt
+    # from gridmap import GridMap, CellType
+    # test_grid = np.zeros(grid.shape)
+    # test_grid[grid == CellType.OBSTACLE] = 100
+    # plt.imshow(test_grid)
+    # plt.show()
 
     gridmap = GridMap(grid, 1.98, 1)
     rover = Vehicle(0.2, 0.2, 0.3)
     print('Inflating obstacles...')
-    infl = gridmap.inflate_obstacles(gridmap.grid, rover)
+    infl = gridmap.inflate_obstacles(rover)
     print('Finished inflating obstacles')
 
     # import matplotlib.pyplot as plt
