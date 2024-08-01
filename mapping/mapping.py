@@ -107,24 +107,32 @@ class Mapping:
         greyscale_sand_rectangle = (sand_prob * 255.0).astype(np.uint8)
 
         # Find the corners of the sandbox as contours
-        contours, _ = cv2.findContours(greyscale_sand_rectangle, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # Assume the largest contour corresponds to the sandbox
-        contour = max(contours, key=cv2.contourArea)
-        # Approximate the contour to get the corners
-        epsilon = 0.09 * cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, epsilon, True)
-        # Extract the corner points
-        corner_points = approx.reshape(-1, 2)
+        epsilon_fact = 0.01
+        while epsilon_fact <= 0.09:
+            contours, _ = cv2.findContours(greyscale_sand_rectangle, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Assume the largest contour corresponds to the sandbox
+            contour = max(contours, key=cv2.contourArea)
+            # Approximate the contour to get the corners
+            # epsilon = 0.05 * cv2.arcLength(contour, True)
+            epsilon = epsilon_fact * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            # Extract the corner points
+            corner_points = approx.reshape(-1, 2)
+
+            if len(corner_points) == 4:
+                break
+            else:
+                epsilon_fact += 0.015
 
         # Display the original image and the detected corners DEBUG
-        # import matplotlib.pyplot as plt
-        # image = cv2.cvtColor(greyscale_sand_rectangle, cv2.COLOR_GRAY2BGR)
-        # for point in corner_points:
-        #     cv2.circle(image, tuple(point), 50, (0, 0, 255), -1)
-        # plt.figure(figsize=(10, 10))
-        # plt.imshow(image)
-        # plt.title("Detected Corners")
-        # plt.show()
+        import matplotlib.pyplot as plt
+        image = cv2.cvtColor(greyscale_sand_rectangle, cv2.COLOR_GRAY2BGR)
+        for point in corner_points:
+            cv2.circle(image, tuple(point), 15, (0, 0, 255), -1)
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image)
+        plt.title("Detected Corners")
+        plt.show()
 
         return corner_points
 
@@ -160,7 +168,7 @@ class Mapping:
                     best_index = i
 
             # Associate this desired point to the closest sandbox corner
-            sorted_desired_corners[j, :] = best_assoc  # DEBUG
+            sorted_desired_corners[j, :] = best_assoc
             # Prevent from associating this desired point to another sandbox corner
             del desired_corners[best_index]
         del desired_corners
@@ -176,8 +184,10 @@ class Mapping:
         :return: The homography matrix for the transformation.
         """
         if self.map_homography is None:
-            sand_position = self.get_objects_position(map_img, ['sand or rover'])
-            map_homography = self._find_homography_matrix(sand_position['sand or rover'])
+            # sand_position = self.get_objects_position(map_img, ['sand or rover'])
+            # map_homography = self._find_homography_matrix(sand_position['sand or rover'])
+            sand_position = self.get_objects_position(map_img, ['sand'])
+            map_homography = self._find_homography_matrix(sand_position['sand'])
 
             # # Apply the homography transformation DEBUG
             # import matplotlib.pyplot as plt
