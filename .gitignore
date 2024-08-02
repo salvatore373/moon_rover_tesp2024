@@ -6,3 +6,4 @@
 .idea/jupyter-settings.xml
 .idea/inspectionProfiles/Project_Default.xml
 .idea/inspectionProfiles/profiles_settings.xml
+*.pyc
