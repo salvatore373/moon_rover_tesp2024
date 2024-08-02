@@ -6,8 +6,7 @@ import numpy as np
 #This runs currently as a standalone script, code will need a bit of adaptation but could be turned into a function pretty easily, everything before
 #the while true loop would be part of the init function, everything in the loop would be a function call to process one frame
 
-#To read in single image as file
-#imRaw = cv2.imread("ref.jpg")
+
 
 #print(type(im))
 #print("h: ", h)
@@ -114,7 +113,7 @@ class tagFinder:
                     cv2.rectangle(self.rectMap, (self.rx, self.ry), (self.rx + self.rw, self.ry + self.rh), (36,12,255), 2)
                     cv2.line(self.rectMap, (self.cgx, self.cgy), (l2x + self.cgx, l2y + self.cgy),(255,255,255),1)
                     cv2.line(self.rectMap, (self.crx, self.cry), (l2x + self.crx, l2y + self.cry),(255,255,255),1)
-                    cv2.putText(self.rectMap, str(round(self.thetaR*180/np.pi,3)), (100,100), cv2.FONT_HERSHEY_SIMPLEX,  0.75, (255,255,255), 2, cv2.LINE_AA) 
+                    cv2.putText(self.rectMap, str(round(self.thetaR*180/np.pi,3)), (100,150), cv2.FONT_HERSHEY_SIMPLEX,  0.75, (255,255,255), 2, cv2.LINE_AA) 
         if self.dispImg is None:
             self.dispImg = cv2.cvtColor(cv2.bitwise_or(close,close2), cv2.COLOR_GRAY2BGR)
         elif self.optimized == False:
@@ -125,25 +124,39 @@ class tagFinder:
 
 if __name__ == "__main__":
     #This opens the webcam
-    vid = cv2.VideoCapture(0) 
+    #vid = cv2.VideoCapture(0) 
+    #To read in single image as file
+    imRaw = cv2.imread("color_tag/ProperColors.png")
 
-    ret, imRaw = vid.read()
+    #ret, imRaw = vid.read()
     (sourceH, sourceW, c) = imRaw.shape[:3]
     sf = 1  
     tf = tagFinder() 
     tf.optimized = False
+
+    imghsv = cv2.cvtColor(imRaw, cv2.COLOR_BGR2HSV).astype("float32")
+    (h, s, v) = cv2.split(imghsv)
+    s = s*1.5
+    s = np.clip(s,0,255)
+    v = v*1.5
+    v = np.clip(v,0,255)
+    imghsv = cv2.merge([h,s,v])
+    imRaw = cv2.cvtColor(imghsv.astype("uint8"), cv2.COLOR_HSV2BGR)
+
     while(True):
-        ret, imRaw = vid.read()
+        #ret, imRaw = vid.read()
         imRaw = cv2.flip(imRaw, 1)
         im = cv2.resize(imRaw, (int(sf*sourceW),int(sf*sourceH)))
-        ((x,y,theta),_,outimg,rectMap) = tf.tagAngle(im)
+        ((x,y,theta),_,outimg,rectMap) = tf.tagAngle(im,(220,42,16),40,(1,160,90),50)
         print(theta)
         cv2.imshow("images", np.hstack([im, outimg, rectMap]))
+        cv2.waitKey(0)
+        break
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break
 
     # When everything done, release the capture
-    vid.release()
+    #vid.release()
     cv2.destroyAllWindows()
 
 
