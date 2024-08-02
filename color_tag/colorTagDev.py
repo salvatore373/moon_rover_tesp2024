@@ -120,7 +120,7 @@ class tagFinder:
         elif self.optimized == False:
             self.dispImg = cv2.cvtColor(cv2.bitwise_or(close,close2), cv2.COLOR_GRAY2BGR)
         
-        return ((self.cx,self.cy,round(self.thetaR*180/np.pi,3)),self.tagsFound,self.dispImg, self.rectMap)
+        return ((self.cx,self.cy,round(self.thetaR,3)),self.tagsFound,self.dispImg, self.rectMap)
 
 
 if __name__ == "__main__":

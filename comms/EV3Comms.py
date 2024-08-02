@@ -1,5 +1,5 @@
 import socket 
-
+from pybricks.tools import wait
 #USAGE
 
 #from EV3Comms import EV3Socket
@@ -31,6 +31,9 @@ class EV3Socket:
         L = str(leftThrottle).zfill(3)
         R = str(rightThrottle).zfill(3)
         B = str(backThrottle).zfill(3)
+
+        wait(100)
+        EV3Socket.stopRobot()
 
         payload = b"L" + L.encode('UTF-8') + b"R" + R.encode('UTF-8') + b"B" + B.encode('UTF-8')
         self.sock.send(payload)

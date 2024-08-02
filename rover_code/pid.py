@@ -9,10 +9,7 @@ def calculate_heading(x1, y1, x2, y2):
     # Calculate the heading angle in radians
     theta_radians = math.atan2(dy, dx)
 
-    # Convert the angle to degrees
-    theta_degrees = math.degrees(theta_radians)
-
-    return theta_degrees
+    return theta_radians
 
 
 class PDController:
@@ -45,12 +42,22 @@ class PDController:
         uy = self.Kpy * ey + self.Kdy * de_y
         # PD control for heading 
         u_theta = self.Kp_theta * e_theta + self.Kd_theta * de_theta
-        # Convert to wheel velocities 
+        # Convert to wheel velocities in m/s
         v = self.Kv * (ux + uy)
         omega = self.Komega * u_theta
-        v_FL = v - (self.d / 2) * omega
-        v_FR = v + (self.d / 2) * omega
+        if u_theta > 0:
+            v_FL = v - (self.d / 2) * omega
+            v_FR = v + (self.d / 2) * omega
+        elif u_theta < 0:
+            v_FL = v + (self.d / 2) * omega
+            v_FR = v - (self.d / 2) * omega
         v_R = v
+
+        # Convert velocities to rad/s
+        v_FL /= 3.5
+        v_FR /= 3.5
+        v_R /= 3.5
+
         # Update previous errors 
         self.prev_ex = ex
         self.prev_ey = ey

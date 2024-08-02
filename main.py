@@ -106,8 +106,9 @@ def main():
     print("Finished Init")
     controller = PDController(Kpx=1, Kdx=0.1, Kpy=1, Kdy=0.1, Kp_theta=1, Kd_theta=0.1, Kv=1, Komega=1, d=0.15)
     print("initialized PD")
-    curr_x, curr_y = best_path[0]
-    des_x, des_y = best_path[1]
+    i = 0
+    curr_x, curr_y = best_path[i]
+    des_x, des_y = best_path[i + 1]
     # Initialize the localizer
     localizer = tagFinder()
     print("init tag finder")
@@ -128,6 +129,10 @@ def main():
         print("Rear motor velocity:", int(np.clip(v_R,0,255)))
 
         ev3socket.updateMotors(int(np.clip(v_FL,0,255)), int(np.clip(v_FR,0,255)), int(np.clip(v_R,0,255)))
+        i += 1
+        if i >= len(best_path): break
+        curr_x, curr_y = best_path[i]
+        des_x, des_y = best_path[i + 1]
 
     # TODO: stop when an obstacle is too close
 
