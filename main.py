@@ -13,7 +13,7 @@ from rover_code.pid import PDController, calculate_heading
 from scipy import ndimage
 
 
-def take_picture_with_camera():
+def take_picture_with_camera(camera):
     """Returns the picture taken with the connected camera."""
     # return np.array(Image.open("/Volumes/SALVATORE R/Università/TESP/data/map0_resized2.jpg"))  # DEBUG
 
@@ -37,11 +37,9 @@ def take_picture_with_camera():
     # plt.show()
     # return frame
 
-    cam = cv2.VideoCapture(0)
-    _, frame = cam.read()
+    _, frame = camera.read()
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = cv2.resize(frame, (round(0.8 * frame.shape[1]), round(0.8 * frame.shape[0])))
-    cam.release()
 
     import matplotlib.pyplot as plt
     plt.imshow(frame)
@@ -49,13 +47,13 @@ def take_picture_with_camera():
     return frame
 
 
-def build_map(rover: Vehicle):
+def build_map(rover: Vehicle, camera):
     """
     Takes a picture with the camera and converts is to a gridmap to be used in path planning.
     Returns the built GridMap.
     """
     mapping = Mapping()
-    map_img_from_camera = take_picture_with_camera()
+    map_img_from_camera = take_picture_with_camera(camera)
     mapping.get_map_homography(map_img_from_camera)
     warped_img = mapping.apply_homography_to_map(np.array(map_img_from_camera))
     grid = mapping.get_gridmap(warped_img)
@@ -85,9 +83,11 @@ def build_map(rover: Vehicle):
 def main():
     # Build the robot that we are going to use
     rover = Vehicle(0.2, 0.2, 0.3)
+    # Build camera
+    camera = cv2.VideoCapture(0)
 
     # Get the map where the robot is
-    map, mapping = build_map(rover)
+    map, mapping = build_map(rover, camera)
 
     # Build the path planner
     path_planner = PathPlanner(map, rover)
@@ -113,7 +113,7 @@ def main():
     print("init tag finder")
 
     while curr_x != des_x or des_y != curr_y:
-        img = take_picture_with_camera()
+        img = take_picture_with_camera(camera)
         print("image taeken")
         img = mapping.apply_homography_to_map(img)
         print('transformed')
@@ -130,6 +130,10 @@ def main():
         ev3socket.updateMotors(int(np.clip(v_FL,0,255)), int(np.clip(v_FR,0,255)), int(np.clip(v_R,0,255)))
 
     # TODO: stop when an obstacle is too close
+
+    # Release the camera resource
+    camera.release()
+
 
 
 if __name__ == '__main__':
