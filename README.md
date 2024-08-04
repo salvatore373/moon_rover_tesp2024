@@ -5,9 +5,9 @@ During TESP 2024, in the laboratory of space robotics directed by Prof. Yoshida,
 
 ## The team
 Our team was made up of 4 components, coming from different countries all over the world:
- - Salvatore Michele Rago: La Sapienza University, Italy
- - Trevor Wolf: Colorado School of Mines, USA
- - Adrian Suliga: AGH University of Kracow
+ - [Salvatore Michele Rago](https://github.com/salvatore373): La Sapienza University, Italy
+ - [Trevor Wolf](https://github.com/wolfpaw682): Colorado School of Mines, USA
+ - [Adrian Suliga](https://github.com/AdrianSuliga): AGH University of Kracow, Poland
  - Harsimret Dhami: Cranfield University, UK 
 
 Supervisors: [Ellian Neppel](https://www.linkedin.com/in/elian-neppel/), [Gustavo Díaz](https://www.linkedin.com/in/gustavo-diaz-space-robotics/), Keisuke Takehana.
